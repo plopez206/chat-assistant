@@ -9,7 +9,7 @@ import {
 const jwtClient = new google.auth.JWT(
   GOOGLE_SERVICE_ACCOUNT_EMAIL,
   undefined,
-  GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  GOOGLE_PRIVATE_KEY,
   ['https://www.googleapis.com/auth/calendar']
 );
 const calendar = google.calendar({ version: 'v3', auth: jwtClient });

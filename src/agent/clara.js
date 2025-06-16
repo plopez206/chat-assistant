@@ -130,7 +130,7 @@ export async function handleMessage(chatId, text, session) {
       } else if (fn === 'bookingTime') {
         result = await bookTime(args.Date, args.Time, args.fullName);
       }
-      session.messages.push({ role: 'assistant', name: fn, content: JSON.stringify(result) });
+      session.messages.push({ role: 'function', name: fn, content: JSON.stringify(result) });
     }
   }
 
