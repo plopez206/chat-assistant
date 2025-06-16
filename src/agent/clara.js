@@ -98,42 +98,37 @@ const FUNCTIONS = [
   }
 ];
 
-export async function handleMessage(chatId, text, session) {
-  // session = { messages: [] }
+export async function handleMessage(bot, chatId, text, session) {
   session.messages ??= [];
   session.messages.push({ role: 'user', content: text });
 
-  let reply;
   let loopGuard = 0;
+  while (loopGuard++ < 5) {
+    const messages = [
+      { role: 'system', content: SYS_PROMPT },
+      ...FEWSHOT_DIALOG,
+      ...session.messages
+    ];
 
-  const baseMessages = [
-    { role: 'system', content: SYS_PROMPT },
-    ...FEWSHOT_DIALOG,
-    ...session.messages
-  ];
+    const aiMsg = await chatCompletion({ messages, functions: FUNCTIONS });
 
-  while (!reply && loopGuard++ < 5) {
-    const aiMsg = await chatCompletion({ messages: baseMessages, functions: FUNCTIONS });
-
-    if (aiMsg.content) {
-      reply = aiMsg.content;
+    if (aiMsg.content && aiMsg.content.trim().length) {
+      await bot.sendMessage(chatId, aiMsg.content);
+      session.messages.push({ role: 'assistant', content: aiMsg.content });
     }
 
     if (aiMsg.function_call) {
       const fn = aiMsg.function_call.name;
       const args = JSON.parse(aiMsg.function_call.arguments || '{}');
       let result;
-      if (fn === 'now') {
-        result = { now: dayjs().tz('Europe/Madrid').format('YYYY-MM-DD, HH:mm') };
-      } else if (fn === 'getAvailability') {
-        result = await getAvailability(args.Date);
-      } else if (fn === 'bookingTime') {
-        result = await bookTime(args.Date, args.Time, args.fullName);
-      }
-      session.messages.push({ role: 'function', name: fn, content: JSON.stringify(result) });
-    }
-  }
+      if (fn === 'now') result = { now: dayjs().tz('Europe/Madrid').format('YYYY-MM-DD, HH:mm') };
+      else if (fn === 'getAvailability') result = await getAvailability(args.Date);
+      else if (fn === 'bookingTime') result = await bookTime(args.Date, args.Time, args.fullName);
 
-  if (!reply) reply = 'Lo siento, algo ha fallado.';
-  return reply;
+      session.messages.push({ role: 'function', name: fn, content: JSON.stringify(result) });
+      continue;
+    }
+
+    break;
+  }
 }
