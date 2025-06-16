@@ -18,9 +18,9 @@ app.post('/telegram/webhook', async (req, res) => {
 });
 
 bot.on('message', async (msg) => {
-  const { id: chatId } = msg.chat;
-  const text = msg.text;
-  const session = bot.context ??= {};
+  const chatId = msg.chat.id;
+  const text   = msg.text || '';
+  const session = bot.context ??= {};   // memoria simple
   await handleMessage(bot, chatId, text, session);
 });
 

@@ -9,14 +9,16 @@ dayjs.extend(customParse);
 dayjs.extend(utc);
 dayjs.extend(tz);
 
-const SYS_PROMPT = `Eres Clara, consultora carismática de Al Norte. Sigue estrictamente:
-1. Haz preguntas iniciales suaves.
-2. Explica beneficios solo si te lo piden.
-3. Llama a /now al principio de cada conversación para anclar fecha.
-4. Workflow de reserva: confirma nombre‑fecha‑hora, llama getAvailability, etc.
-5. Español o inglés según el usuario.
-6. Usa «Deme un segundo…» cada vez que llames a funciones.
-7. Maneja errores como en documentación.`;
+const SYS_PROMPT = `Eres un asistente virtual para una peluquería. Tu tarea es ayudar a los clientes a reservar citas para cortes de pelo. Puedes responder preguntas, verificar disponibilidad y reservar citas.
+Si el cliente solicita una cita, debes verificar la disponibilidad y confirmar la reserva. Si no hay disponibilidad, ofrece alternativas.
+Si el cliente solicita reservar una cita, debes pedirle su nombre completo y confirmar la reserva.
+Si el cliente solicita cancelar una cita, debes confirmar la cancelación y eliminar la cita del calendario.
+Si el cliente solicita cambiar una cita, debes verificar la disponibilidad y confirmar el cambio.
+Si el cliente solicita información sobre servicios, precios o ubicación, debes proporcionar la información relevante.
+Si el cliente solicita información sobre horarios, debes proporcionar los horarios de apertura y cierre.
+Si el cliente solicita información sobre el personal, debes proporcionar información sobre los estilistas disponibles.
+Si el cliente solicita información sobre productos, debes proporcionar información sobre los productos disponibles.
+Si el cliente solicita información sobre promociones, debes proporcionar información sobre las promociones actuales.`
 
 // Few‑shot dialog extracted from real salon chats
 const FEWSHOT_DIALOG = [
@@ -62,10 +64,7 @@ const FEWSHOT_DIALOG = [
   { role: 'user', content: 'No puedo, el jueves tengo le ebau' },
   { role: 'assistant', content: 'Viernes a las 16:00 lo más pronto' },
   { role: 'user', content: 'vale' },
-  { role: 'assistant', content: 'Apuntado!' },
-  { role: 'assistant', content: 'Muy buenas compi, por si te quieres pasar antes estoy libre ya 😉' },
-  { role: 'user', content: 'okey' },
-  { role: 'user', content: 'ahora voy' }
+  { role: 'assistant', content: 'Apuntado!' }
 ];
 
 const FUNCTIONS = [
@@ -102,8 +101,7 @@ export async function handleMessage(bot, chatId, text, session) {
   session.messages ??= [];
   session.messages.push({ role: 'user', content: text });
 
-  let loopGuard = 0;
-  while (loopGuard++ < 5) {
+  for (let i = 0; i < 5; i++) {
     const messages = [
       { role: 'system', content: SYS_PROMPT },
       ...FEWSHOT_DIALOG,
@@ -112,24 +110,36 @@ export async function handleMessage(bot, chatId, text, session) {
 
     const aiMsg = await chatCompletion({ messages, functions: FUNCTIONS });
 
-    if (aiMsg.content && aiMsg.content.trim().length) {
+
+    if (aiMsg.content?.trim()) {
+      await bot.sendChatAction(chatId, 'typing');
       await bot.sendMessage(chatId, aiMsg.content);
       session.messages.push({ role: 'assistant', content: aiMsg.content });
     }
 
     if (aiMsg.function_call) {
-      const fn = aiMsg.function_call.name;
+      const fn   = aiMsg.function_call.name;
       const args = JSON.parse(aiMsg.function_call.arguments || '{}');
-      await bot.sendChatAction(chatId, 'typing');
+
+      await bot.sendChatAction(chatId, 'typing');   // puntitos
+
       let result;
-      if (fn === 'now') result = { now: dayjs().tz('Europe/Madrid').format('YYYY-MM-DD, HH:mm') };
-      else if (fn === 'getAvailability') result = await getAvailability(args.Date);
-      else if (fn === 'bookingTime') result = await bookTime(args.Date, args.Time, args.fullName);
+      try {
+        if (fn === 'now') {
+          result = { now: dayjs().tz('Europe/Madrid').format('YYYY-MM-DD, HH:mm') };
+        } else if (fn === 'getAvailability') {
+          result = await getAvailability(args.Date);
+        } else if (fn === 'bookingTime') {
+          result = await bookTime(args.Date, args.Time, args.fullName);
+        }
+      } catch (err) {
+        result = { error: err.message };
+      }
 
       session.messages.push({ role: 'function', name: fn, content: JSON.stringify(result) });
       continue;
     }
-
+    
     break;
   }
 }
