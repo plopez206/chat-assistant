@@ -1,0 +1,20 @@
+{
+  "name": "al-norte-agent",
+  "version": "1.0.0",
+  "description": "Automated call‑booking assistant for beauty salons (GPT + Telegram + Google Calendar).",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.11",
+    "dotenv": "^16.4.3",
+    "express": "^4.19.0",
+    "googleapis": "^133.0.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "openai": "^4.34.0"
+  }
+}
