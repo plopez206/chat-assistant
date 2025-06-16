@@ -1,15 +1,16 @@
 import { google } from 'googleapis';
 import dayjs from 'dayjs';
 import {
-  GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  GOOGLE_PRIVATE_KEY,
+  GOOGLE_CREDENTIALS_JSON,
   GOOGLE_CALENDAR_ID
 } from '../config.js';
 
+const creds = JSON.parse(GOOGLE_CREDENTIALS_JSON);
+
 const jwtClient = new google.auth.JWT(
-  GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  creds.client_email,
   undefined,
-  GOOGLE_PRIVATE_KEY,
+  creds.private_key,
   ['https://www.googleapis.com/auth/calendar']
 );
 const calendar = google.calendar({ version: 'v3', auth: jwtClient });
