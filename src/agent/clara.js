@@ -120,6 +120,7 @@ export async function handleMessage(bot, chatId, text, session) {
     if (aiMsg.function_call) {
       const fn = aiMsg.function_call.name;
       const args = JSON.parse(aiMsg.function_call.arguments || '{}');
+      await bot.sendChatAction(chatId, 'typing');
       let result;
       if (fn === 'now') result = { now: dayjs().tz('Europe/Madrid').format('YYYY-MM-DD, HH:mm') };
       else if (fn === 'getAvailability') result = await getAvailability(args.Date);

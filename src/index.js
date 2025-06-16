@@ -18,11 +18,10 @@ app.post('/telegram/webhook', async (req, res) => {
 });
 
 bot.on('message', async (msg) => {
-  const chatId = msg.chat.id;
+  const { id: chatId } = msg.chat;
   const text = msg.text;
   const session = bot.context ??= {};
-  const reply = await handleMessage(chatId, text, session);
-  await bot.sendMessage(chatId, reply);
+  await handleMessage(bot, chatId, text, session);
 });
 
 app.listen(PORT, async () => {
